@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Transcriber App</title>
+</head>
+<body>
+    <h1>Speech Transcriber App</h1>
+    <label for="voice-select">Select Voice:</label>
+    <select id="voice-select"></select>
+    <br><br>
+    <button id="start-btn">Start Transcribing</button>
+    <button id="stop-btn" disabled>Stop Transcribing</button>
+    <div id="output" style="white-space: pre-wrap; margin-top: 20px;"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const voiceSelect = document.getElementById('voice-select');
+
+        // Check for SpeechRecognition API support
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const SpeechSynthesis = window.speechSynthesis;
+
+        if (!SpeechRecognition) {
+            output.innerText = "Your browser does not support the Web Speech API.";
+            startBtn.disabled = true;
+            stopBtn.disabled = true;
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-IN';
+            recognition.interimResults = true;  // Allow interim results
+            recognition.continuous = true;       // Keep recognizing
+
+            let transcription = '';  // Variable to store the full transcription
+
+            // Populate voice options
+            function populateVoiceList() {
+                const voices = SpeechSynthesis.getVoices();
+                voiceSelect.innerHTML = '';
+                voices.forEach((voice) => {
+                    const option = document.createElement('option');
+                    option.value = voice.name;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    voiceSelect.appendChild(option);
+                });
+            }
+
+            // Event listener for when the voice list is loaded
+            speechSynthesis.onvoiceschanged = populateVoiceList;
+
+            recognition.onstart = () => {
+                output.innerText = "Listening...";
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                transcription = ''; // Clear previous transcription
+            };
+
+            recognition.onresult = (event) => {
+                // Get the latest result
+                const latestResult = event.results[event.results.length - 1];
+                // Check if the result is final
+                if (latestResult.isFinal) {
+                    transcription += latestResult[0].transcript + ' '; // Append new final transcript
+                }
+                output.innerText = transcription; // Update output with the final transcription
+            };
+
+            recognition.onerror = (event) => {
+                output.innerText = `Error occurred in recognition: ${event.error}`;
+            };
+
+            recognition.onend = () => {
+                output.innerText += "\nStopped listening.";
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+
+                // Speak the full transcription when recognition ends
+                const utterance = new SpeechSynthesisUtterance(transcription);
+                const selectedVoice = voiceSelect.value;
+                const voices = SpeechSynthesis.getVoices();
+                const voice = voices.find(v => v.name === selectedVoice);
+
+                // Set the selected voice for the utterance
+                if (voice) {
+                    utterance.voice = voice;
+                }
+                SpeechSynthesis.speak(utterance);
+            };
+
+            startBtn.onclick = () => {
+                recognition.start();
+            };
+
+            stopBtn.onclick = () => {
+                recognition.stop();
+            };
+        }
+    </script>
+</body>
+</html>
