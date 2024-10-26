@@ -10,14 +10,12 @@
     <label for="voice-select">Select Voice:</label>
     <select id="voice-select"></select>
     <br><br>
-    <button id="start-btn">Start Transcribing</button>
-    <button id="stop-btn" disabled>Stop Transcribing</button>
+    <button id="toggle-btn">Start Transcribing</button>
     <div id="output" style="white-space: pre-wrap; margin-top: 20px;"></div>
 
     <script>
         const output = document.getElementById('output');
-        const startBtn = document.getElementById('start-btn');
-        const stopBtn = document.getElementById('stop-btn');
+        const toggleBtn = document.getElementById('toggle-btn');
         const voiceSelect = document.getElementById('voice-select');
 
         // Check for SpeechRecognition API support
@@ -26,8 +24,7 @@
 
         if (!SpeechRecognition) {
             output.innerText = "Your browser does not support the Web Speech API.";
-            startBtn.disabled = true;
-            stopBtn.disabled = true;
+            toggleBtn.disabled = true;
         } else {
             const recognition = new SpeechRecognition();
             recognition.lang = 'en-IN';
@@ -35,6 +32,7 @@
             recognition.continuous = true;       // Keep recognizing
 
             let transcription = '';  // Variable to store the full transcription
+            let isListening = false;  // Variable to track the listening state
 
             // Populate voice options
             function populateVoiceList() {
@@ -53,9 +51,9 @@
 
             recognition.onstart = () => {
                 output.innerText = "Listening...";
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
+                toggleBtn.innerText = "Stop Transcribing";
                 transcription = ''; // Clear previous transcription
+                isListening = true; // Update listening state
             };
 
             recognition.onresult = (event) => {
@@ -74,8 +72,8 @@
 
             recognition.onend = () => {
                 output.innerText += "\nStopped listening.";
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
+                toggleBtn.innerText = "Start Transcribing"; // Reset button text
+                isListening = false; // Update listening state
 
                 // Speak the full transcription when recognition ends
                 const utterance = new SpeechSynthesisUtterance(transcription);
@@ -90,12 +88,12 @@
                 SpeechSynthesis.speak(utterance);
             };
 
-            startBtn.onclick = () => {
-                recognition.start();
-            };
-
-            stopBtn.onclick = () => {
-                recognition.stop();
+            toggleBtn.onclick = () => {
+                if (isListening) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
             };
         }
     </script>
